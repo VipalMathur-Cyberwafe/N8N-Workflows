@@ -1,0 +1,596 @@
+{
+  "name": "Ai Automation Agency CRM using Gemini",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "4090eefc-0af9-4010-b2e3-60a17068c5e9",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -336,
+        -80
+      ],
+      "id": "403cdd60-fa26-4166-9af9-03fd2fd555dd",
+      "name": "Webhook",
+      "webhookId": "4090eefc-0af9-4010-b2e3-60a17068c5e9"
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "models/gemini-3-flash-preview"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "={{ $json.body.Description }}\n{{ $json.body.Company }}\n{{ $json.body.Budget }}"
+            }
+          ]
+        },
+        "jsonOutput": true,
+        "builtInTools": {},
+        "options": {
+          "systemMessage": "This is an ai automation agency. You have to act as a profesional sales assistant which will analyze the lead description and company's name as well as budget and give output by determining lead score (1-100), priority (High,Low), budget level, urgency, industry, company name, Intent, Recommended action to be taken for the lead (like calling and when to call), sentiment analysis, next follow up date and one sentence summary and return only valid JSON and all these fields should be key value pair"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.googleGemini",
+      "typeVersion": 1.2,
+      "position": [
+        336,
+        -272
+      ],
+      "id": "51caf59f-3da6-48bf-9c34-92570b13d52c",
+      "name": "Message a model",
+      "retryOnFail": true,
+      "credentials": {
+        "googlePalmApi": {
+          "id": "V72Lv1tbehoNYQg7",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "content": "perations\n\nPurpose: Coordinates AI data extraction, lead scoring, database logging, and multi-channel team notifications.\n\nNodes Included:\n\nMessage a model: Sends raw lead data to Gemini to analyze details and generate insights or lead scores.\n\nInsert Basic Details (use in duplication check): Stores initial lead data to ensure future duplicate detection works.\n\nJSON Parsing code: Formats and structures the output returned by the Gemini AI model.\n\nChecking lead score: Evaluates the AI-generated score against predefined thresholds to route qualified vs. unqualified leads.\n\nLead Information (Google Sheets): Appends enriched lead details into the primary database or spreadsheet.\n\nConfirmation email: Automates direct email responses to new leads.\n\nSlack message to teams: Posts updates to internal Slack channels to alert team members about new or high-value leads.",
+        "height": 1152,
+        "width": 912,
+        "color": 4
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        304,
+        -880
+      ],
+      "typeVersion": 1,
+      "id": "45dbb3ee-5382-4e51-a878-c1c8b862f7cd",
+      "name": "Sticky Note1"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "{\n  \"Error\": \"Invalid Details\"\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        112,
+        -80
+      ],
+      "id": "15be6eb3-e6b1-4dbd-9af2-4827c4fc8ba0",
+      "name": "Invalid Details Format"
+    },
+    {
+      "parameters": {
+        "operation": "rowNotExists",
+        "dataTableId": {
+          "__rl": true,
+          "value": "9zxS509DOxSsiYR5",
+          "mode": "list",
+          "cachedResultName": "Ai Agency",
+          "cachedResultUrl": "/projects/SUd5qjVlmqn8qWF4/datatables/9zxS509DOxSsiYR5"
+        },
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "email",
+              "keyValue": "={{ $json.body.email }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        112,
+        -272
+      ],
+      "id": "7949a7be-2e2d-45ad-b669-1de589c73e7e",
+      "name": "If lead not exist"
+    },
+    {
+      "parameters": {
+        "operation": "rowExists",
+        "dataTableId": {
+          "__rl": true,
+          "value": "9zxS509DOxSsiYR5",
+          "mode": "list",
+          "cachedResultName": "Ai Agency",
+          "cachedResultUrl": "/projects/SUd5qjVlmqn8qWF4/datatables/9zxS509DOxSsiYR5"
+        },
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "email",
+              "keyValue": "={{ $json.body.email }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        112,
+        112
+      ],
+      "id": "0a8d4069-fb7a-449b-a790-1af5cd425f0d",
+      "name": "If lead exists",
+      "alwaysOutputData": false,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "{\n  \"Error\": \"Lead already Exists\"\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        400,
+        112
+      ],
+      "id": "b7f3f4b4-5c73-41e9-8fb1-8bd58b120304",
+      "name": "Lead Already Exists"
+    },
+    {
+      "parameters": {
+        "jsCode": "const text = $json.content.parts[0].text;\nreturn [\n  {\n    json: JSON.parse(text)\n  }\n]"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        688,
+        -176
+      ],
+      "id": "086bc478-bb5a-47c8-a4c6-000ba5c8ed88",
+      "name": "JSON Parsing code",
+      "retryOnFail": true
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "a201baab-5641-4a2f-8aac-e7cae2fb5f4f",
+              "leftValue": "={{ $json.lead_score }}",
+              "rightValue": 80,
+              "operator": {
+                "type": "number",
+                "operation": "gte"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        912,
+        -176
+      ],
+      "id": "9120d58c-a95e-4b69-9da1-9ffb5e2006d1",
+      "name": "Checking lead score"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "67e0dabf-8041-40a6-9ec3-b4ebbf1366c5",
+              "leftValue": "={{ $json.body.email }}",
+              "rightValue": "=^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$",
+              "operator": {
+                "type": "string",
+                "operation": "regex"
+              }
+            },
+            {
+              "id": "a67fecf0-a216-4e79-8693-fc21e70c4ccb",
+              "leftValue": "={{ $json.body.Phone }}",
+              "rightValue": "^\\d{10}$",
+              "operator": {
+                "type": "string",
+                "operation": "regex"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -112,
+        -80
+      ],
+      "id": "7c9d488d-d678-4bff-9dac-96ec0038d79e",
+      "name": "Check data format"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "mode": "list",
+          "value": ""
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "list",
+          "value": ""
+        }
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1136,
+        -368
+      ],
+      "id": "bdde929a-988f-439f-a5ce-31f4e6c47a81",
+      "name": "Lead Information",
+      "retryOnFail": true,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "cNZUTgZPHpH7TIta",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "dataTableId": {
+          "__rl": true,
+          "value": "9zxS509DOxSsiYR5",
+          "mode": "list",
+          "cachedResultName": "Ai Agency",
+          "cachedResultUrl": "/projects/SUd5qjVlmqn8qWF4/datatables/9zxS509DOxSsiYR5"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Budget": "={{ $('If lead not exist').item.json.body.Budget }}",
+            "Name": "={{ $('If lead not exist').item.json.body.Name }}",
+            "email": "={{ $('If lead not exist').item.json.body.email }}",
+            "Phone": "={{ $('If lead not exist').item.json.body.Phone }}",
+            "Company": "={{ $('If lead not exist').item.json.body.Company }}",
+            "Description": "={{ $('If lead not exist').item.json.body.Description }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Name",
+              "displayName": "Name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "email",
+              "displayName": "email",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Phone",
+              "displayName": "Phone",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Company",
+              "displayName": "Company",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Budget",
+              "displayName": "Budget",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Description",
+              "displayName": "Description",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        688,
+        -368
+      ],
+      "id": "9eb06771-8ba5-4852-b2f4-0886ad293955",
+      "name": "Insert Basic Details (use in duplication check)"
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $('Check data format').item.json.body.email }}",
+        "subject": "Automation Request Response",
+        "emailType": "text",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        1136,
+        -176
+      ],
+      "id": "9de01b1c-d12d-4e8c-8884-6aad45487063",
+      "name": "Confirmation email",
+      "webhookId": "7ab30e74-ea11-41da-a49b-38fa28561de1",
+      "retryOnFail": true
+    },
+    {
+      "parameters": {
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "mode": "list",
+          "value": ""
+        },
+        "otherOptions": {}
+      },
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.7,
+      "position": [
+        1136,
+        16
+      ],
+      "id": "db0da3ca-2e89-42b9-8a1f-0025759db5a1",
+      "name": "Slack message to teams",
+      "webhookId": "fa68049f-a0a0-4246-960b-90d83e22ac47",
+      "retryOnFail": true
+    },
+    {
+      "parameters": {
+        "content": "Validation and Duplication Check\n\nPurpose: Acts as the entry gate to verify incoming data before running any core AI or CRM processing.\n\nNodes Included:\n\nCheck data format: Evaluates whether the incoming payload from the Webhook meets the required structure and schema.\n\nIf lead not exist: Checks whether the incoming contact is a new lead.\n\nIf lead exists: Identifies existing contact records to prevent duplicate entries.\n\nInvalid Details Format / Lead Already Exists: Handles error cases or duplicate workflows by sending appropriate response notifications or terminating early.",
+        "height": 896,
+        "width": 912,
+        "color": 5
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -624,
+        -624
+      ],
+      "typeVersion": 1,
+      "id": "9c8d8c0e-da1d-48a4-8400-56eee5fda951",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "{\n  \"Success\": \"Saved\"\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        912,
+        -368
+      ],
+      "id": "7575dfe5-e0cb-4218-9e61-6b73f2d89565",
+      "name": "Lead saved Response"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Check data format",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Message a model": {
+      "main": [
+        [
+          {
+            "node": "JSON Parsing code",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Insert Basic Details (use in duplication check)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If lead not exist": {
+      "main": [
+        [
+          {
+            "node": "Message a model",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If lead exists": {
+      "main": [
+        [
+          {
+            "node": "Lead Already Exists",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "JSON Parsing code": {
+      "main": [
+        [
+          {
+            "node": "Checking lead score",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Checking lead score": {
+      "main": [
+        [
+          {
+            "node": "Lead Information",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Confirmation email",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Slack message to teams",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Lead Information",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Confirmation email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check data format": {
+      "main": [
+        [
+          {
+            "node": "If lead exists",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "If lead not exist",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Invalid Details Format",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Lead Information": {
+      "main": [
+        []
+      ]
+    },
+    "Insert Basic Details (use in duplication check)": {
+      "main": [
+        [
+          {
+            "node": "Lead saved Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "14e3cecc-dc45-4683-bb1e-0c784f7e125b",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "3caf5215ae60ad620109aa639f46e7b833aa0b0616df1b68d980da641c1349fc"
+  },
+  "nodeGroups": [],
+  "id": "DPZuavmZWnhLoPdl",
+  "tags": []
+}
